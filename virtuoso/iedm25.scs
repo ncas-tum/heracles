@@ -5,9 +5,11 @@ ahdl_include "../heracles.va"
 subckt fecap (te be)
 
 parameters area = 1e-12
++          p_ferro = 0.7
 +          t_fe = 10e-9
 +          t_int = 2e-9
 +          eps_fe = 70
++          eps_de = 20
 +          eps_int = 7
 +          w_b = 1.05
 +          d_e = 7.5e-9
@@ -28,9 +30,11 @@ parameters area = 1e-12
 +          dos_trap = 5e32
 
 C1 (te be) heracles area = area
++          p_ferro = p_ferro
 +          t_fe = t_fe
 +          t_int = t_int
 +          eps_fe = eps_fe
++          eps_de = eps_de
 +          eps_int = eps_int
 +          w_b = w_b
 +          d_e = d_e

@@ -27,12 +27,16 @@ module heracles(te, be);
     // Physical Parameters
     (* desc="Device area", units="m^2" *)
     parameter real area = 625e-12    from[1e-18:inf);
+    (* desc="Portion of ferroelectric domains", units="1" *)
+    parameter real p_ferro = 0.6   from[0:1];
     (* desc="Ferroelectric layer thickness", units="m" *)
     parameter real t_fe = 9.8e-9    from[1e-9:5e-8];
     (* desc="Interface layer thickness", units="m" *)
     parameter real t_int = 1.5e-9    from[1e-10:2e-8];
-    (* desc="Relative permittivity of HZO" *)
+    (* desc="Relative permittivity of orthorhombic HZO" *)
     parameter real eps_fe = 70    from[1:100];
+    (* desc="Relative permittivity of monoclinic HZO" *)
+    parameter real eps_de = 20    from[1:100];
     (* desc="Relative permittivity of interface layer" *)
     parameter real eps_int = 90    from[1:500];
     (* desc="Energy barrier height", units="eV" *)
@@ -86,7 +90,7 @@ module heracles(te, be);
 
     // Variables
     (* desc="Current densities", units="A/m^2" *)
-    real i_cfe, i_cint, i_p, i_leakp, i_leakbe, i_t, i_tat;
+    real i_cfe, i_cde, i_cint, i_p, i_leakp, i_leakbe, i_t, i_tat;
     (* desc="Occupation probability of down polarization state", units="1" *)
     real p;
     (* desc="Ferroelectric Polarization", units="F/m^2" *)
@@ -96,7 +100,7 @@ module heracles(te, be);
     (* desc="Energy barrier shift", units="eV" *)
     real w_e;
     (* desc="Capacitance densities", units="F/m^2" *)
-    real c_fe, c_int, c_depl_u, c_depl_d, c_depl_tot;
+    real c_fe, c_de, c_int, c_depl_u, c_depl_d, c_depl_tot;
     (* desc="Electric fields", units="V/m" *)
     real e_fe, e_be, e_leakage;
     (* desc="Branch voltages", units="V" *)
@@ -113,6 +117,7 @@ module heracles(te, be);
     branch(te, n_int) interface;
     branch(te, n_be) leakage;
     branch(n_int, n_be) fecap;
+    branch(te, n_be) dielectric;
     branch(n1) internal1;
 
     analog begin
@@ -121,6 +126,7 @@ module heracles(te, be);
 
         // Initial definitions
         c_fe = `P_EPS0 * eps_fe / (t_fe + t_fe_mc);
+        c_de = `P_EPS0 * eps_de / (t_fe + t_fe_mc);
         c_int = `P_EPS0 * eps_int / (t_int + t_int_mc);
         c_depl_u = `P_EPS0 * eps_depl / abs(`P_EPS0 * eps_fe * e_fe + q_fix_depl_u) * `P_Q * (n_depl + n_depl_mc);
         c_depl_d = `P_EPS0 * eps_depl / abs(`P_EPS0 * eps_fe * e_fe + q_fix_depl_d) * `P_Q * (n_depl + n_depl_mc);
@@ -164,6 +170,7 @@ module heracles(te, be);
         i_leakbe = sign_vbe*a_t_int * $pow(e_be,2) * limexp(- b_t_int/abs(e_be));   
 
         // Displacement current density
+        i_cde = c_de * ddt(V(dielectric));
         i_cfe = c_fe * ddt(V(fecap));
         i_cint = c_int * ddt(V(bottom));
 
@@ -175,8 +182,9 @@ module heracles(te, be);
         // Branch current update
         I(bottom) <+ i_cint * (area + area_mc);
         I(bottom) <+ i_leakbe * (area + area_mc);
-        I(fecap) <+ i_cfe * (area + area_mc);
+        I(fecap) <+ i_cfe * p_ferro * (area + area_mc);
         I(fecap) <+ i_p * (area + area_mc);
+        I(dielectric) <+ i_cde * (1 - p_ferro) * (area + area_mc);
         I(leakage) <+ i_tat * (area + area_mc);
         V(interface) <+ (2 * (p_s + p_s_mc) * p - (p_s - p_s_mc) + c_fe * V(fecap)) / c_depl_tot;
 
