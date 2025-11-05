@@ -1,0 +1,69 @@
+simulator lang=spectre
+
+ahdl_include "../heracles.va"
+
+subckt fecap (te be)
+
+parameters area = 1e-12
++          t_fe = 10e-9
++          t_int = 2e-9
++          eps_fe = 70
++          eps_int = 7
++          w_b = 1.05
++          d_e = 7.5e-9
++          e_off = 0
++          p_s = 20e-2
++          n_depl = 1.4e28
++          eps_depl = 2.2
++          q_fix_depl_u = -8e-2
++          q_fix_depl_d = 20e-2
++          m_eff_int = 1
++          m_eff_fe = 0.1
++          phi_b_int = 0.65
++          phi_b_fe = 2.6
++          n_tr_fe = 1e25
++          w_tr_t = 2.1
++          w_tr_rel = 1.19
++          x_c = 5e-9
++          dos_trap = 5e32
+
+C1 (te be) heracles area = area
++          t_fe = t_fe
++          t_int = t_int
++          eps_fe = eps_fe
++          eps_int = eps_int
++          w_b = w_b
++          d_e = d_e
++          e_off = e_off
++          p_s = p_s
++          n_depl = n_depl
++          eps_depl = eps_depl
++          q_fix_depl_u = q_fix_depl_u
++          q_fix_depl_d = q_fix_depl_d
++          m_eff_int = m_eff_int
++          phi_b_int = phi_b_int
++          m_eff_fe = m_eff_fe
++          phi_b_fe = phi_b_fe
++          n_tr_fe = n_tr_fe
++          w_tr_t = w_tr_t
++          w_tr_rel = w_tr_rel
++          x_c = x_c
++          dos_trap = dos_trap
+
+ends fecap
+
+parameters area_mc=0 t_fe_mc=0 t_int_mc=0 d_e_mc=0 p_s_mc=0 n_depl_mc=0  
+
+statistics{
+    process{ // Variation per MC run
+    //vary t_int_mc dist=gauss std=1e-11
+    //vary p_s_mc dist=gauss std=0.005
+    vary n_depl_mc dist=gauss std=0.039e28
+    //vary area_mc dist=gauss std=5e-14
+    truncate tr=3
+    }
+    mismatch{ // Variation per instance
+    //vary area_mc dist=gauss std=1e-12
+    truncate tr=3
+    }
+}

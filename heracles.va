@@ -52,21 +52,25 @@ module heracles(te, be);
     (* desc="Fixed charge at depletion/ferrolectric interface"*)
     parameter real q_fix_depl_d = 9.8e-2   from[-1:1];
 
-    // Fowler-Nordheim and Poole-Frenkel conduction parameters
-    (* desc="Electron effective mass in the ferroelectric" *)
-    parameter real m_eff_fe = 0.4      from[0.01:inf);
+    // Fowler-Nordheim and TAT conduction parameters
     (* desc="Electron effective mass in the interface layer" *)
-    parameter real m_eff_int= 1     from[0.01:inf);
+    parameter real m_eff_int = 1     from[0.01:inf);
+    (* desc="Electron effective mass in the ferroelectric layer" *)
+    parameter real m_eff_fe = 0.1     from[0.01:inf);
     (* desc="Electrode/HfO2 Energy barrier height", units="eV" *)
     parameter real phi_b_fe = 2        from(0:5];
     (* desc="Electrode/Interface Energy barrier height", units="eV" *)
     parameter real phi_b_int = 0.65  from(0:5];
-    (*desc="Electronic drift mobility", units="m^2 V^-1 s^-1"*)
-    parameter real mu_fe = 15e-4       from[1e-4:1000];
-    (*desc="Density of states in the conduction band", units="m^-3"*)
-    parameter real n_c_fe = 1e24        from[1e18:1e28];
+    (*desc="Density of traps in the ferroelectric layer", units="m^-3"*)
+    parameter real n_tr_fe = 1e25        from[1e18:1e28];
     (*desc="Trap depth", units="eV"*)
-    parameter real phi_tr_fe = 0.68      from[0:5];
+    parameter real w_tr_t = 2.1      from[0:5];    
+    (*desc="TAT characteristic length", units="m"*)
+    parameter real x_c = 5e-9      from[1e-10:1e-7];
+    (*desc="Trap relaxation energy", units="eV"*)
+    parameter real w_tr_rel = 1.19      from[0:5];
+    (*desc="Trap DOS", units="m"*)
+    parameter real dos_trap = 5e32      from[1e-10:1e40];
 
     // Monte-Carlo variables, see model parameter file
     (* cds_inherited_parameter *)
@@ -82,7 +86,7 @@ module heracles(te, be);
 
     // Variables
     (* desc="Current densities", units="A/m^2" *)
-    real i_cfe, i_cint, i_p, i_leakp, i_leakbe, i_t, i_pf;
+    real i_cfe, i_cint, i_p, i_leakp, i_leakbe, i_t, i_tat;
     (* desc="Occupation probability of down polarization state", units="1" *)
     real p;
     (* desc="Ferroelectric Polarization", units="F/m^2" *)
@@ -96,11 +100,13 @@ module heracles(te, be);
     (* desc="Electric fields", units="V/m" *)
     real e_fe, e_be, e_leakage;
     (* desc="Branch voltages", units="V" *)
-    real v_fecap, v_be, v_int;
+    real v_fecap, v_be, v_int, v_leakage;
     (* desc="Voltage and E-field direction"*)
     real sign_vfe, sign_vbe;
     (* desc="Leakage current intermediate variables"*)
-    real a_t, b_t, a_pf, b_pf, a_t_int, b_t_int;
+    real a_t, b_t, a_t_int, b_t_int;
+    real x_tm, a_xtm, b_xtm, c_xtm, d_xtm, w_tr_c, w_tr_j, tau_c, tau_c_unbound, lambda_xtm;
+    real sqrt_arg, x_tm_num, x_tm_den;
 
     // Branches
     branch(n_be, be) bottom;
@@ -122,7 +128,6 @@ module heracles(te, be);
         pol = 2 * (p_s + p_s_mc) * p;
         e_fe = V(fecap) / (t_fe + t_fe_mc);
         e_be = $limit(V(bottom), "pnjlim", $vt, 5) / (t_int + t_int_mc);
-        e_leakage = $limit(V(leakage), "pnjlim", $vt, 5) / (t_fe + t_fe_mc);
         sign_vfe = $tanh(1e3 * V(fecap));
         sign_vbe = $tanh(1e3 * V(bottom));
 
@@ -130,6 +135,7 @@ module heracles(te, be);
         v_fecap = V(fecap);
         v_be = V(bottom);
         v_int = V(interface);
+        v_leakage = $limit(V(leakage), "pnjlim", $vt, 5);
 
         // Time constant
         w_e = (e_fe - e_off) * d_e;
@@ -137,18 +143,25 @@ module heracles(te, be);
         k_minus = `P_K * $temperature / `P_H * limexp(-(w_b + w_e) * `P_Q / `P_K / $temperature);
 
         // Ferroelectric leakage current - FN tunneling and Poole-Frenkel
-        a_t = $pow(`P_Q, 2) / (8 * `M_PI * `P_H * phi_b_fe);
-        b_t = (8 * `M_PI / 3) * $sqrt(2 * (m_eff_fe * `P_ME * $pow(`P_Q * phi_b_fe, 3)) / ($pow(`P_H, 2) * $pow(`P_Q, 2)));
-        a_pf = `P_Q * mu_fe * n_c_fe * e_leakage;
-        b_pf = limexp(-(`P_Q * (phi_tr_fe - $sqrt((`P_Q * abs(e_leakage)) / (`M_PI * eps_fe * `P_EPS0)))) / (`P_K * $temperature));
-        i_t = sign_vfe * a_t * $pow(e_leakage,2) * limexp(- b_t/abs(e_leakage));
-        i_pf = a_pf * b_pf;
-        i_leakp = i_t + i_pf;
-
+        lambda_xtm = 1 / (2 * $sqrt(phi_b_fe * 2 * m_eff_fe * `P_ME * `P_Q / (`P_H**2) * 4 * `M_PI**2));
+        a_xtm = 2 * w_tr_rel * t_fe * `P_K * $temperature;
+        b_xtm = lambda_xtm * t_fe / w_tr_rel + lambda_xtm**2 / 4 / `P_Q * `P_K * $temperature;
+        c_xtm = lambda_xtm * t_fe * (w_tr_t - w_tr_rel - phi_b_fe) / w_tr_rel;
+        d_xtm = lambda_xtm * t_fe * `P_Q * (phi_b_fe - w_tr_t + w_tr_rel);
+        sqrt_arg = (b_xtm * abs(v_leakage)**2 / (`P_Q / `P_K / $temperature) + c_xtm * abs(v_leakage) / (`P_Q / `P_K / $temperature) + 4 * t_fe**2);
+        x_tm_num = a_xtm * ($sqrt(sqrt_arg) - 2 * a_xtm * t_fe + d_xtm * abs(v_leakage));
+        x_tm_den = (lambda_xtm * `P_Q * v_leakage * v_leakage);
+        x_tm = min(8e-8, x_tm_num / x_tm_den);
+        w_tr_j = w_tr_t + abs(v_leakage) * x_tm / t_fe - phi_b_fe;
+        w_tr_c = min(4, (w_tr_rel - w_tr_j)**2 / 4 / w_tr_rel);
+        tau_c_unbound = 1 / (dos_trap * n_tr_fe * limexp(-x_tm / lambda_xtm - w_tr_c / `P_Q * `P_K * $temperature));
+		tau_c = min(1e10, max(1e-20, tau_c_unbound));
+        i_tat = $tanh(10*v_leakage) * `P_Q * n_tr_fe * x_c / 2 / tau_c;
+		     
         // Interface leakage current - FN tunneling
         a_t_int = ($pow(`P_Q,2)) / (8 * `M_PI * `P_H * phi_b_int);
         b_t_int = (8 * `M_PI / 3) * $sqrt(2 * (m_eff_int * `P_ME * $pow(`P_Q * phi_b_int, 3)) / ($pow(`P_H, 2) * $pow(`P_Q, 2)));
-        i_leakbe = sign_vbe*a_t_int * $pow(e_be,2) * limexp(- b_t_int/abs(e_be));
+        i_leakbe = sign_vbe*a_t_int * $pow(e_be,2) * limexp(- b_t_int/abs(e_be));   
 
         // Displacement current density
         i_cfe = c_fe * ddt(V(fecap));
@@ -164,10 +177,9 @@ module heracles(te, be);
         I(bottom) <+ i_leakbe * (area + area_mc);
         I(fecap) <+ i_cfe * (area + area_mc);
         I(fecap) <+ i_p * (area + area_mc);
-        I(leakage) <+ i_leakp * (area + area_mc);
+        I(leakage) <+ i_tat * (area + area_mc);
         V(interface) <+ (2 * (p_s + p_s_mc) * p - (p_s - p_s_mc) + c_fe * V(fecap)) / c_depl_tot;
 
     end
 endmodule
-
 
