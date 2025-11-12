@@ -31,13 +31,15 @@ This work was supported by the European Research Council (ERC) through the Europ
 If you find Heracles useful in your work, please cite the following [source](https://arxiv.org/abs/2410.07791):
 
 ```
-@article{fehlings2024heracles,
-      title={Heracles: A HfO2 Ferroelectric Capacitor Compact Model for Efficient Circuit Simulations}, 
-      author={Luca Fehlings and Md Hanif Ali and Paolo Gibertini and Egidio A. Gallicchio and Udayan Ganguly and Veeresh Deshpande and Erika Covi},
-      year={2024},
-      eprint={2410.07791},
-      archivePrefix={arXiv},
-      primaryClass={cs.ET},
-      url={https://arxiv.org/abs/2410.07791}, 
-}
+@article{fehlings2025heracles,
+  author={Fehlings, Luca and Hanif Ali, Md and Gibertini, Paolo and Gallicchio, Egidio A. and Ganguly, Udayan and Deshpande, Veeresh and Covi, Erika},
+  journal={IEEE Transactions on Electron Devices}, 
+  title={Heracles: A HfO2 Ferroelectric Capacitor Compact Model for Efficient Circuit Simulations}, 
+  year={2025},
+  volume={72},
+  number={11},
+  pages={6009-6014},
+  keywords={Integrated circuit modeling;Switches;Capacitance;Electrodes;Computational modeling;Semiconductor device modeling;Hafnium compounds;Charge carrier density;Load modeling;Leakage currents;Compact model;ferroelectric devices;HfO2;nonvolatile memory;semiconductor device modeling;SPICE},
+  doi={10.1109/TED.2025.3615577}}
+
 ```
