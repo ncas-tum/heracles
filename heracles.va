@@ -1,7 +1,6 @@
-/* Hafnium-Oxide Ferroelectric Capacitor
- *
- * Models the  polarization switching, capacitance and leakage current of a HZO FeCap.
- */
+// Hafnium-Oxide Ferroelectric Capacitor
+// Models the  polarization switching, capacitance and leakage current of a HZO FeCap.
+
 
 `include "constants.vams"
 `include "disciplines.vams"
@@ -39,9 +38,9 @@ module heracles(te, be);
     (* desc="Bottom electrode" *)
     electrical be;
     (* desc="Internal node for the bottom electrode interface" *)
-    electrical n_be;
+    electrical n_interface;
     (* desc="Internal node for the depletion layer" *)
-    electrical n_int;
+    electrical n_depletion;
     (* desc="Internal node, state variable P" *)
     electrical n1;
 
@@ -119,9 +118,9 @@ module heracles(te, be);
     (* cds_inherited_parameter *)
     parameter real n_depl_mc = 0;
 
-    // Variables
+    // OP parameters / variables
     (* desc="Current densities", units="A/m^2" *)
-    real i_cfe, i_cde, i_cint, i_p, i_leakp, i_leakbe, i_t, i_tat_fe, i_tat_int;
+    real i_cfe, i_cde, i_cint, i_p, i_leakp, i_leakint, i_t, i_tat_fe, i_tat_int;
     (* desc="Occupation probability of down polarization state", units="1" *)
     real p;
     (* desc="Ferroelectric Polarization", units="F/m^2" *)
@@ -133,11 +132,9 @@ module heracles(te, be);
     (* desc="Capacitance densities", units="F/m^2" *)
     real c_fe, c_de, c_int, c_depl_u, c_depl_d, c_depl_tot;
     (* desc="Electric fields", units="V/m" *)
-    real e_fe, e_be, e_leakage;
+    real e_fe, e_int, e_leakage;
     (* desc="Branch voltages", units="V" *)
-    real v_fecap, v_be, v_int, v_leakage;
-    (* desc="Voltage and E-field direction"*)
-    real sign_vfe, sign_vbe;
+    real v_fecap, v_int, v_depl, v_leak;
     (* desc="Leakage current intermediate variables"*)
     real a_t, b_t, a_t_int, b_t_int;
 
@@ -154,16 +151,16 @@ module heracles(te, be);
     real itat_int;
 
     // Branches
-    branch(n_be, be) bottom;
-    branch(te, n_int) interface;
-    branch(te, n_be) leakage;
-    branch(n_int, n_be) fecap;
-    branch(te, n_be) dielectric;
-    branch(n1) internal1;
+    branch(n_interface, be) interface;
+    branch(te, n_depletion) depletion;
+    branch(te, n_interface) leakage;
+    branch(n_depletion, n_interface) fecap;
+    branch(te, n_interface) dielectric;
+    branch(n1) polarization;
 
     analog begin
         // State variable via internal node potential
-        p = V(internal1);
+        p = V(polarization);
 
         // Initial definitions
         c_fe = `P_EPS0 * eps_fe / (t_fe + t_fe_mc);
@@ -174,27 +171,25 @@ module heracles(te, be);
         c_depl_tot = (p * c_depl_d + (1 - p) * c_depl_u);
         pol = 2 * (p_s + p_s_mc) * p;
         e_fe = V(fecap) / (t_fe + t_fe_mc);
-        e_be = $limit(V(bottom), "pnjlim", $vt, 5) / (t_int + t_int_mc);
-        sign_vfe = $tanh(1e3 * V(fecap));
-        sign_vbe = $tanh(1e3 * V(bottom));
+        e_int = $limit(V(interface), "pnjlim", $vt, 5) / (t_int + t_int_mc);
 
         // Debugging variables
         v_fecap = V(fecap);
-        v_be = V(bottom);
         v_int = V(interface);
-        v_leakage = $limit(V(leakage), "pnjlim", $vt, 5);
+        v_depl = V(depletion);
+        v_leak = $limit(V(leakage), "pnjlim", $vt, 5);
 
-        // Time constant
+        // Ferroelectric switching
         w_e = (e_fe - e_off) * d_e;
         k_plus =  `P_K * $temperature / `P_H * limexp(-(w_b - w_e) * `P_Q / `P_K / $temperature);
         k_minus = `P_K * $temperature / `P_H * limexp(-(w_b + w_e) * `P_Q / `P_K / $temperature);
 
         // TAT leakage current
-        `itat(itat_fe, v_leakage, phi_b_fe, m_eff_fe, w_tr_t_fe, w_tr_rel_fe, t_fe,
+        `itat(itat_fe, v_leak, phi_b_fe, m_eff_fe, w_tr_t_fe, w_tr_rel_fe, t_fe,
               dos_trap_fe, n_tr_fe, x_c_fe, lambda_xtm_fe, a_xtm_fe, b_xtm_fe, c_xtm_fe,
               d_xtm_fe, sqrt_arg_fe, x_tm_num_fe, x_tm_den_fe, x_tm_fe, w_tr_j_fe, 
               w_tr_c_fe, tau_c_unbound_fe, tau_c_fe)
-		`itat(itat_int, v_be, phi_b_int, m_eff_int, w_tr_t_int, w_tr_rel_int, t_int, 
+		`itat(itat_int, v_int, phi_b_int, m_eff_int, w_tr_t_int, w_tr_rel_int, t_int, 
               dos_trap_int, n_tr_int, x_c_int, lambda_xtm_int, a_xtm_int, b_xtm_int,
               c_xtm_int, d_xtm_int, sqrt_arg_int, x_tm_num_int, x_tm_den_int, x_tm_int,
               w_tr_j_int, w_tr_c_int, tau_c_unbound_int, tau_c_int)
@@ -202,26 +197,26 @@ module heracles(te, be);
         // FN tunneling current
         a_t_int = ($pow(`P_Q,2)) / (8 * `M_PI * `P_H * phi_b_int);
         b_t_int = (8 * `M_PI / 3) * $sqrt(2 * (m_eff_int * `P_ME * $pow(`P_Q * phi_b_int, 3)) / ($pow(`P_H, 2) * $pow(`P_Q, 2)));
-        i_leakbe = `tanhlim(v_be, 0.1) * a_t_int * $pow(e_be,2) * limexp(- b_t_int/abs(e_be));   
+        i_leakint = `tanhlim(v_int, 0.1) * a_t_int * $pow(e_int,2) * limexp(- b_t_int/abs(e_int));   
 
         // Displacement current density
         i_cde = c_de * ddt(V(dielectric));
         i_cfe = c_fe * ddt(V(fecap));
-        i_cint = c_int * ddt(V(bottom));
+        i_cint = c_int * ddt(V(interface));
 
         // Polarization equation
-        I(internal1) <+ ddt(p);
-        I(internal1) <+ k_minus * p-k_plus * (1 - p);
+        I(polarization) <+ ddt(p);
+        I(polarization) <+ k_minus * p-k_plus * (1 - p);
         i_p = ddt(2 * (p_s + p_s_mc) * p);
 
         // Branch current update
-        I(bottom) <+ i_cint * (area + area_mc);
-        I(bottom) <+ (itat_int + i_leakbe) * (area + area_mc);
+        I(interface) <+ i_cint * (area + area_mc);
+        I(interface) <+ (itat_int + i_leakint) * (area + area_mc);
         I(fecap) <+ i_cfe * p_ferro * (area + area_mc);
         I(fecap) <+ i_p * (area + area_mc);
         I(dielectric) <+ i_cde * (1 - p_ferro) * (area + area_mc);
         I(leakage) <+ itat_fe * (area + area_mc);
-        V(interface) <+ (2 * (p_s + p_s_mc) * p - (p_s - p_s_mc) + c_fe * V(fecap)) / c_depl_tot;
+        V(depletion) <+ (2 * (p_s + p_s_mc) * p - (p_s - p_s_mc) + c_fe * V(fecap)) / c_depl_tot;
 
     end
 endmodule
