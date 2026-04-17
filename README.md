@@ -19,7 +19,20 @@ There is a compiled osdi binary shipped with every release, see the releases tab
 ## Documentation
 [Heracles Documentation](https://bics-rug.github.io/heracles/)
 
-The documentation is still work in progress. 
+The documentation is still work in progress.
+
+## Frequently Asked Questions (FAQ)
+- How do I calibrate Heracles on my device data?
+  - CV and PV hysteresis data has proven most useful for a base calibration. Initially, material parameters should be kept at their default values or set to physical characterization data, if possible. Then, the most critical parameters to calibrate are these related to the switching energy barrier `w_b` and `d_e` and these related to the capactive interaction between depletion, interface and ferroelectric layer: `n_depl`, `q_fix_depl`, `eps_depl`, `eps_fe`, `eps_int` and `eps_de`. Please refer to this preprint for a more detailed procedure: [Defect-Aware Physics-Based Compact Model for Ferroelectric nvCap: From TCAD Calibration to Circuit Co-Design](https://arxiv.org/abs/2511.21267)
+- Can I use Heracles without calibrating it to device data first?
+  - Yes, you can use one of the existing model cards calibrade on lab devices.
+- Does Heracles work for devices other than FeCaps, such as FTJs or FeFETs?
+  - Heracles can be extended to also cover these devices. Dedicated FeFET and FTJ extensions are in development right now.
+- Which circuit simulators can I use with Heracles?
+  - Heracles is currently only compatible with the proprietary Cadence Spectre simulator, but it has been used successfully with free simulators such as ngspice or VACASK with adjustments. Future release are planned to be explicitly compatible with these free simulators as well.
+- Which simulation types does Heracles support?
+  - DC, transient and AC. Please not that by the nature of how SPICE works, DC and AC will only show you operating point or steady state behaviour, and hence should can not be used to simulate CV or PV hystereses, which can only be simulated in transient mode.
+
 
 ## Contributing
 
@@ -28,8 +41,9 @@ This work was supported by the European Research Council (ERC) through the Europ
 
 ## Citation
 
-If you find Heracles useful in your work, please cite the following [source](https://arxiv.org/abs/2410.07791):
+If you find Heracles useful in your work, consider citing on of the following articles:
 
+[Heracles: A HfO2 Ferroelectric Capacitor Compact Model for Efficient Circuit Simulations](https://arxiv.org/abs/2410.07791)
 ```
 @article{fehlings2025heracles,
   author={Fehlings, Luca and Hanif Ali, Md and Gibertini, Paolo and Gallicchio, Egidio A. and Ganguly, Udayan and Deshpande, Veeresh and Covi, Erika},
@@ -41,5 +55,16 @@ If you find Heracles useful in your work, please cite the following [source](htt
   pages={6009-6014},
   keywords={Integrated circuit modeling;Switches;Capacitance;Electrodes;Computational modeling;Semiconductor device modeling;Hafnium compounds;Charge carrier density;Load modeling;Leakage currents;Compact model;ferroelectric devices;HfO2;nonvolatile memory;semiconductor device modeling;SPICE},
   doi={10.1109/TED.2025.3615577}}
+```
+
+[Defect-Aware Physics-Based Compact Model for Ferroelectric nvCap: From TCAD Calibration to Circuit Co-Design](https://arxiv.org/abs/2511.21267)
+```
+@article{fehlings2025defect,
+  title={Defect-Aware Physics-Based Compact Model for Ferroelectric nvCap: From TCAD Calibration to Circuit Co-Design},
+  author={Fehlings, Luca and Raut, Nihal and Ali, Md Hanif and Puglisi, Francesco M and Padovani, Andrea and Deshpande, Veeresh and Covi, Erika},
+  journal={arXiv preprint arXiv:2511.21267},
+  year={2025}
+}
+
 
 ```
