@@ -1,0 +1,32 @@
+simulator lang=spectre
+
+ahdl_include "../heracles.va"
+
+subckt nvcap (te be)
+
+parameters area = 1e-12
+
+C1 (te be) model_nvcap area = area
+
+ends nvcap
+
+model model_nvcap heracles 
++ p_ferro = 0.6  t_fe = 10e-9  t_int = 2e-9  eps_fe = 70  eps_de = 20  eps_int = 7  
++ w_b = 1.05  d_e = 7.5e-9  e_off = 0  p_s = 20e-2  n_depl = 1.4e28  eps_depl = 2.2
++ q_fix_depl_u = -8e-2  q_fix_depl_d = 20e-2  m_eff_fe = 0.1  m_eff_int = 0.4
++ phi_b_fe = 2  phi_b_int = 3.1  n_tr_fe = 1e25  n_tr_int = 1e23  w_tr_t_fe = 2.1
++ w_tr_t_int = 3  w_tr_rel_fe = 1.19  w_tr_rel_int = 0.4  dos_trap_fe = 1e-8
++ dos_trap_int = 1e-8  x_c_fe = 5e-9  x_c_int = 1e-9
+
+parameters area_mc=0 t_fe_mc=0 t_int_mc=0 d_e_mc=0 p_s_mc=0 n_depl_mc=0  
+
+statistics{
+    process{
+    vary n_depl_mc dist=gauss std=0.039e28
+    truncate tr=3
+    }
+    mismatch{
+    vary n_depl_mc dist=gauss std=0.039e28
+    truncate tr=3
+    }
+}
