@@ -28,7 +28,7 @@
     i = `tanhlim(v, 0.1) * `P_Q * n_tr * x_c / 2 / tau_c;
 
 //(* compact_module *)
-module heracles(te, be);
+module heracles_v(te, be);
     // Ports
     inout te, be;
 
@@ -45,7 +45,7 @@ module heracles(te, be);
     electrical n1;
 
     // Physical Parameters
-    (* desc="Device area", units="m^2" *)
+    (* desc="Device area", units="m^2", type="instance" *)
     parameter real area = 1e-12    from[1e-18:inf);
     (* desc="Portion of ferroelectric domains", units="1" *)
     parameter real p_ferro = 0.6   from[0:1];
@@ -90,9 +90,9 @@ module heracles(te, be);
     (*desc="Density of traps in the ferroelectric layer", units="m^-3"*)
     parameter real n_tr_int = 1e23        from[1e18:1e28];
     (*desc="Trap depth", units="eV"*)
-    parameter real w_tr_t_fe = 2.1      from[0:5];    
+    parameter real w_tr_t_fe = 2.1      from[0:5];
     (*desc="Trap depth", units="eV"*)
-    parameter real w_tr_t_int = 3      from[0:5];    
+    parameter real w_tr_t_int = 3      from[0:5];
     (*desc="Trap relaxation energy", units="eV"*)
     parameter real w_tr_rel_fe = 1.19      from[0:5];
     (*desc="Trap relaxation energy", units="eV"*)
@@ -166,8 +166,8 @@ module heracles(te, be);
         c_fe = `P_EPS0 * eps_fe / (t_fe + t_fe_mc);
         c_de = `P_EPS0 * eps_de / (t_fe + t_fe_mc);
         c_int = `P_EPS0 * eps_int / (t_int + t_int_mc);
-        t_depl_u = max(1e-12, abs((`P_EPS0 * eps_fe * e_fe + q_fix_depl_u) / (`P_Q * (n_depl + n_depl_mc)))); 
-        t_depl_d = max(1e-12, (`P_EPS0 * eps_fe * e_fe + q_fix_depl_d) / (`P_Q * (n_depl + n_depl_mc))); 
+        t_depl_u = max(1e-12, abs((`P_EPS0 * eps_fe * e_fe + q_fix_depl_u) / (`P_Q * (n_depl + n_depl_mc))));
+        t_depl_d = max(1e-12, (`P_EPS0 * eps_fe * e_fe + q_fix_depl_d) / (`P_Q * (n_depl + n_depl_mc)));
         c_depl_u = `P_EPS0 * eps_depl / t_depl_u;
         c_depl_d = `P_EPS0 * eps_depl / t_depl_d;
         c_depl_tot = (p * c_depl_d + (1 - p) * c_depl_u);
@@ -189,9 +189,9 @@ module heracles(te, be);
         // TAT leakage current
         `itat(itat_fe, v_leak, phi_b_fe, m_eff_fe, w_tr_t_fe, w_tr_rel_fe, t_fe,
               dos_trap_fe, n_tr_fe, x_c_fe, lambda_xtm_fe, a_xtm_fe, b_xtm_fe, c_xtm_fe,
-              d_xtm_fe, sqrt_arg_fe, x_tm_num_fe, x_tm_den_fe, x_tm_fe, w_tr_j_fe, 
+              d_xtm_fe, sqrt_arg_fe, x_tm_num_fe, x_tm_den_fe, x_tm_fe, w_tr_j_fe,
               w_tr_c_fe, tau_c_unbound_fe, tau_c_fe)
-		`itat(itat_int, v_int, phi_b_int, m_eff_int, w_tr_t_int, w_tr_rel_int, t_int, 
+		`itat(itat_int, v_int, phi_b_int, m_eff_int, w_tr_t_int, w_tr_rel_int, t_int,
               dos_trap_int, n_tr_int, x_c_int, lambda_xtm_int, a_xtm_int, b_xtm_int,
               c_xtm_int, d_xtm_int, sqrt_arg_int, x_tm_num_int, x_tm_den_int, x_tm_int,
               w_tr_j_int, w_tr_c_int, tau_c_unbound_int, tau_c_int)
@@ -199,7 +199,7 @@ module heracles(te, be);
         // FN tunneling current
         a_t_int = ($pow(`P_Q,2)) / (8 * `M_PI * `P_H * phi_b_int);
         b_t_int = (8 * `M_PI / 3) * $sqrt(2 * (m_eff_int * `P_ME * $pow(`P_Q * phi_b_int, 3)) / ($pow(`P_H, 2) * $pow(`P_Q, 2)));
-        i_leakint = `tanhlim(v_int, 0.1) * a_t_int * $pow(e_int,2) * limexp(- b_t_int/abs(e_int));   
+        i_leakint = `tanhlim(v_int, 0.1) * a_t_int * $pow(e_int,2) * limexp(- b_t_int/abs(e_int));
 
         // Displacement current density
         i_cde = c_de * ddt(V(dielectric));
@@ -222,4 +222,3 @@ module heracles(te, be);
 
     end
 endmodule
-
