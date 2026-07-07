@@ -14,10 +14,10 @@ To use the model in Cadence Virtuoso, create a cell called *fecap* with a symbol
 Alternatively create a *veriloga* view and paste in the source code, then import the model card in Maestro. Keep in mind that in this way mismatch Monte Carlo simulations may not work, depending on your Virtuoso configuration and CMOS PDK.
 
 ### Ngspice
-There is a compiled osdi binary shipped with every release, see the releases tab. You can find ngspice-based testbenches in the repository [heracles-testbenches](https://github.com/bics-rug/heracles-testbenches).
+There is a compiled osdi binary shipped with every release, see the releases tab. You can find ngspice-based testbenches in the repository [heracles-testbenches](https://github.com/ncas-tum/heracles-testbenches).
 
 ## Documentation
-[Heracles Documentation](https://bics-rug.github.io/heracles/)
+[Heracles Documentation](https://ncas-tum.github.io/heracles/)
 
 The documentation is still work in progress.
 
